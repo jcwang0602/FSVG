@@ -48,6 +48,9 @@ python -m torch.distributed.launch --nproc_per_node=$GPUS --master_port 27763 --
 Please refer to [train.sh](train.sh) for training commands on other datasets.
 
 ### Evaluation
+
+Download the model weights from [Baidu Netdisk](https://pan.baidu.com/s/1fqXEvflaC2O9-46gg0SSEA?pwd=qt2h).
+
 Evaluation on ReferIt. 
 ```
 GPUS=4
