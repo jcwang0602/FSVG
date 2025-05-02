@@ -34,8 +34,8 @@ def get_args_parser():
     parser.add_argument("--emb_size", default=512, type=int, help="fusion module embedding dimensions")
 
     # Dataset parameters
-    parser.add_argument("--data_root", type=str, default="image_data", help="path to ReferIt splits data folder")
-    parser.add_argument("--split_root", type=str, default="split_data", help="location of pre-parsed dataset info")
+    parser.add_argument("--data_root", type=str, default="ln_data", help="path to ReferIt splits data folder")
+    parser.add_argument("--split_root", type=str, default="ln_split", help="location of pre-parsed dataset info")
     parser.add_argument("--dataset", default="unc", type=str, help="referit/unc/unc+/gref/gref_umd")
     parser.add_argument("--max_query_len", default=50, type=int, help="maximum time steps (lang length) per batch")
     parser.add_argument("--prompt", type=str, default="{pseudo_query}", help="Prompt template")
@@ -104,7 +104,7 @@ def main(args):
         num_workers=args.num_workers,
     )
 
-    checkpoint = torch.load(args.eval_model, map_location="cpu")
+    checkpoint = torch.load(args.eval_model, map_location="cpu", weights_only=False)
     model_without_ddp.load_state_dict(checkpoint["model"])
     print("Current model training epoch is: ", checkpoint["epoch"])
 

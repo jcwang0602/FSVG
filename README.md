@@ -10,18 +10,48 @@ pip install git+https://github.com/openai/CLIP.git
 ```
 
 ### Data Preparation
-You can download the images from the original source and place them in `./image_data` folder:
+You can download the images from the original source and place them in `ln_data` folder:
 - RefCOCO/RefCOCO+/RefCOCOg
 - Flickr30K Entities
-- Visual Genome
+- Referit
 
-Finally, the `./image_data` folder will have the following structure:
+Finally, the `ln_data` folder will have the following structure:
 
 ```angular2html
 |-- ln_data
    |-- flickr30k
    |-- mscoco/images/train2014/
-   |-- visual-genome
+   |-- referit
+```
+
+Download the above annotations to a disk directory such as `ln_split`; then will have the following similar directory structure:
+```
+|-- ln_split
+    ├── flickr
+    │   ├── flickr_test.pth
+    │   ├── flickr_train_pseudo.pth
+    │   └── flickr_val.pth
+    ├── gref
+    │   ├── gref_train_pseudo.pth
+    │   └── gref_val.pth
+    ├── gref_umd
+    │   ├── gref_umd_test.pth
+    │   ├── gref_umd_train_pseudo.pth
+    │   └── gref_umd_val.pth
+    ├── referit
+    │   ├── referit_test.pth
+    │   ├── referit_train_pseudo.pth
+    │   └── referit_val.pth
+    ├── unc
+    │   ├── unc_testA.pth
+    │   ├── unc_testB.pth
+    │   ├── unc_train_pseudo.pth
+    │   └── unc_val.pth
+    └── unc+
+        ├── unc+_testA.pth
+        ├── unc+_testB.pth
+        ├── unc+_train_pseudo.pth
+        └── unc+_val.pth
 ```
 
 ### Training

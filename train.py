@@ -18,7 +18,7 @@ from tensorboardX import SummaryWriter
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser("CLIP-VG Args", add_help=False)
+    parser = argparse.ArgumentParser("FSVG Args", add_help=False)
     parser.add_argument("--sup_type", default="full", type=str)
     parser.add_argument("--lr", default=1e-4, type=float)
     parser.add_argument("--lr_text", default=1e-5, type=float)
@@ -56,13 +56,10 @@ def get_args_parser():
     """ embedding size"""
     parser.add_argument("--emb_size", default=512, type=int, help="fusion module embedding dimensions")
     # Dataset parameters
-    parser.add_argument("--data_root", type=str, default="image_data/", help="path to ReferIt splits data folder")
-    parser.add_argument("--split_root", type=str, default="split_data/", help="location of pre-parsed dataset info")
+    parser.add_argument("--data_root", type=str, default="ln_data", help="path to ReferIt splits data folder")
+    parser.add_argument("--split_root", type=str, default="ln_split", help="location of pre-parsed dataset info")
     parser.add_argument("--dataset", default="referit", type=str, help="referit/unc/unc+/gref/gref_umd")
     parser.add_argument("--max_query_len", default=50, type=int, help="maximum time steps (lang length) per batch")
-    # Prompt Engineering: "{pseudo_query}" denote without using prompt
-    #                    "{pseudo_query}" or using "find the region that corresponds to the description {pseudo_query}"
-    parser.add_argument("--prompt", type=str, default="{pseudo_query}", help="Prompt template")
     # dataset parameters
     parser.add_argument("--output_dir", default="./outputs/test", help="path where to save, empty for no saving")
     parser.add_argument("--device", default="cuda", help="device to use for training / testing")
@@ -124,7 +121,11 @@ def main(args):
             rest_param.append(p)
             rest_names.append(n)
 
-    param_list = [{"params": rest_param, "lr": args.lr}, {"params": visu_param, "lr": args.lr_visu}, {"params": text_param, "lr": args.lr_text}]
+    param_list = [
+        {"params": rest_param, "lr": args.lr},
+        {"params": visu_param, "lr": args.lr_visu},
+        {"params": text_param, "lr": args.lr_text},
+    ]
     # using RMSProp or AdamW
     if args.optimizer == "rmsprop":
         optimizer = torch.optim.RMSprop(param_list, lr=args.lr, weight_decay=args.weight_decay)
@@ -175,8 +176,20 @@ def main(args):
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
 
     batch_sampler_train = torch.utils.data.BatchSampler(sampler_train, args.batch_size, drop_last=True)
-    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train, collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val, drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
+    data_loader_train = DataLoader(
+        dataset_train,
+        batch_sampler=batch_sampler_train,
+        collate_fn=utils.collate_fn,
+        num_workers=args.num_workers,
+    )
+    data_loader_val = DataLoader(
+        dataset_val,
+        args.batch_size,
+        sampler=sampler_val,
+        drop_last=False,
+        collate_fn=utils.collate_fn,
+        num_workers=args.num_workers,
+    )
 
     best_accu = 0
     if args.resume:
@@ -206,7 +219,12 @@ def main(args):
         train_stats = train_one_epoch(args, model, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         val_stats = validate(args, model, data_loader_val, device, epoch)
-        log_stats = {"epoch": epoch, **{f"train_{k}": v for k, v in train_stats.items()}, **{f"val_{k}": v for k, v in val_stats.items()}, "n_parameters": n_parameters}
+        log_stats = {
+            "epoch": epoch,
+            **{f"train_{k}": round(v, 4) for k, v in train_stats.items()},
+            **{f"val_{k}": round(v, 4) for k, v in val_stats.items()},
+            "n_parameters": n_parameters,
+        }
         print(log_stats)
         if args.output_dir and utils.is_main_process():
             with open(os.path.join(args.output_dir, "log.txt"), "a") as f:
@@ -219,7 +237,17 @@ def main(args):
                 best_accu = val_stats["accu"]
 
             for checkpoint_path in checkpoint_paths:
-                utils.save_on_master({"model": model_without_ddp.state_dict(), "optimizer": optimizer.state_dict(), "lr_scheduler": lr_scheduler.state_dict(), "epoch": epoch, "args": args, "val_accu": val_stats["accu"]}, checkpoint_path)
+                utils.save_on_master(
+                    {
+                        "model": model_without_ddp.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "lr_scheduler": lr_scheduler.state_dict(),
+                        "epoch": epoch,
+                        "args": args,
+                        "val_accu": val_stats["accu"],
+                    },
+                    checkpoint_path,
+                )
         if utils.is_main_process:
             writer.add_scalar("train/train_loss", train_stats["loss"], epoch)
             writer.add_scalar("train/bbox_loss", train_stats["loss_bbox"], epoch)
